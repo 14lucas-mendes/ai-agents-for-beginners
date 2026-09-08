@@ -1,106 +1,372 @@
 [![How to Design Good AI Agents](./images/lesson-3-thumbnail.png)](https://youtu.be/m9lM8qqoOEA?si=4KimounNKvArQQ0K)
 
-> _(Click the image above to view video of this lesson)_
+> _(Click the image above to view the video for this lesson)_
+
 # AI Agentic Design Principles
 
-## Introduction
+## Big Picture
 
-There are many ways to think about building AI Agentic Systems. Given that ambiguity is a feature and not a bug in Generative AI design, it’s sometimes difficult for engineers to figure out where to even start. We have created a set of human-centric UX Design Principles to enable developers to build customer-centric agentic systems to solve their business needs. These design principles are not a prescriptive architecture but rather a starting point for teams who are defining and building out agent experiences.
+A working agent is not automatically a good agent.
 
-In general, agents should:
+Once a system can make decisions, use tools, remember information, and act over time, we need to decide **how it should behave around people**.
 
-- Broaden and scale human capacities (brainstorming, problem-solving, automation, etc.)
-- Fill in knowledge gaps (get me up-to-speed on knowledge domains, translation, etc.)
-- Facilitate and support collaboration in the ways we as individuals prefer to work with others
-- Make us better versions of ourselves (e.g., life coach/task master, helping us learn emotional regulation and mindfulness skills, building resilience, etc.)
+By the end of this lesson, you should be able to design an agent experience around three questions:
 
-## This Lesson Will Cover
+1. What should the agent do for the user?
+2. What should remain visible and controllable?
+3. How should the relationship evolve over time without surprising the user?
 
-- What are the Agentic Design Principles
-- What are some guidelines to follow while implementing these design principles
-- What are some examples of using the design principles
+---
 
-## Learning Goals
+## Before This Lesson: Architecture Is Not Experience
 
-After completing this lesson, you will be able to:
+Our **AI Learning Agent** has an emerging technical structure.
 
-1. Explain what the Agentic Design Principles are
-2. Explain the guidelines for using the Agentic Design Principles
-3. Understand how to build an agent using the Agentic Design Principles
+We know it may eventually use tools, knowledge, context, memory, and workflows.
 
-## The Agentic Design Principles
+But imagine this interaction:
+
+> Learner: “Help me learn Tool Use.”
+>
+> Agent: “I created a learning plan, saved your preferences, searched several resources, and changed your schedule.”
+
+Even if every action was technically successful, the experience is poor if the learner never understood or approved those actions.
+
+The architecture tells us **what the system can do**.
+
+Design principles help us decide **how those capabilities should be experienced by a human**.
+
+---
+
+## The Problem: More Agency Creates More Ways to Surprise the User
+
+A deterministic application normally follows a path the developer explicitly designed.
+
+Agentic systems introduce uncertainty:
+
+- the model may choose different actions for similar requests;
+- context changes over time;
+- tools may have side effects;
+- an agent may act proactively;
+- stored information can affect later behavior.
+
+That means we cannot design only the happy-path output.
+
+We need to design the relationship between the user and the agent.
+
+---
+
+## The New Capability: Human-Centered Agent Design
+
+The design principles in this lesson are not a fixed software architecture. They are a set of lenses for deciding how an agent should behave in a way that supports people rather than simply maximizing automation.
+
+A useful starting principle is:
+
+> **An agent should expand human capability while keeping important actions understandable and controllable.**
+
+The original design principles can be grouped into three lenses: **space, time, and core trust**.
 
 ![Agentic Design Principles](./images/agentic-design-principles.png)
 
-### Agent (Space)
+---
 
-This is the environment in which the agent operates. These principles inform how we design agents for engaging in physical and digital worlds.
+## 1. Agent in Space: How the Agent Fits Into the User's Environment
 
-- **Connecting, not collapsing** – help connect people to other people, events, and actionable knowledge to enable collaboration and connection.
-- Agents help connect events, knowledge, and people.
-- Agents bring people closer together. They are not designed to replace or belittle people.
-- **Easily accessible yet occasionally invisible** – agent largely operates in the background and only nudges us when it is relevant and appropriate.
-  - Agent is easily discoverable and accessible for authorized users on any device or platform.
-  - Agent supports multimodal inputs and outputs (sound, voice, text, etc.).
-  - Agent can seamlessly transition between foreground and background; between proactive and reactive, depending on its sensing of user needs.
-  - Agent may operate in invisible form, yet its background process path and collaboration with other Agents are transparent to and controllable by the user.
+### Connect, do not collapse
 
-### Agent (Time)
+Agents should help connect people to information, actions, and other people. They should not unnecessarily replace human relationships or hide collaboration behind a single opaque interface.
 
-This is how the agent operates over time. These principles inform how we design agents interacting across the past, present, and future.
+For the AI Learning Agent, that might mean:
 
-- **Past**: Reflecting on history that includes both state and context.
-  - Agent provides more relevant results based on analysis of richer historical data beyond only the event, people, or states.
-  - Agent creates connections from past events and actively reflects on memory to engage with current situations.
-- **Now**: Nudging more than notifying.
-  - Agent embodies a comprehensive approach to interacting with people. When an event happens, the Agent goes beyond static notification or other static formality. Agent can simplify flows or dynamically generate cues to direct the user’s attention at the right moment.
-  - Agent delivers information based on contextual environment, social and cultural changes and tailored to user intent.
-  - Agent interaction can be gradual, evolving/growing in complexity to empower users over the long term.
-- **Future**: Adapting and evolving.
-  - Agent adapts to various devices, platforms, and modalities.
-  - Agent adapts to user behavior, accessibility needs, and is freely customizable.
-  - Agent is shaped by and evolves through continuous user interaction.
+- recommending the relevant lesson rather than pretending to be the only source of truth;
+- linking to the README or notebook it used;
+- helping the learner reach community or instructor support when needed.
 
-### Agent (Core)
+### Accessible, but not constantly intrusive
 
-These are the key elements in the core of an agent’s design.
+An agent can operate in the foreground or background, but its presence and important actions should remain discoverable.
 
-- **Embrace uncertainty but establish trust**.
-  - A certain level of Agent uncertainty is expected. Uncertainty is a key element of agent design.
-  - Trust and transparency are foundational layers of Agent design.
-  - Humans are in control of when the Agent is on/off and Agent status is clearly visible at all times.
+A proactive nudge can be useful:
 
-## The Guidelines to Implement These Principles
+> “You finished Tool Use yesterday. Want a five-minute review exercise?”
 
-When you’re using the previous design principles, use the following guidelines:
+Sending repeated unsolicited messages because the system *can* do so would not be useful.
 
-1. **Transparency**: Inform the user that AI is involved, how it functions (including past actions), and how to give feedback and modify the system.
-2. **Control**: Enable the user to customize, specify preferences and personalize, and have control over the system and its attributes (including the ability to forget).
-3. **Consistency**: Aim for consistent, multi-modal experiences across devices and endpoints. Use familiar UI/UX elements where possible (e.g., microphone icon for voice interaction) and reduce the customer’s cognitive load as much as possible (e.g., aim for concise responses, visual aids, and ‘Learn More’ content).
+---
 
-## How To Design a Travel Agent using These Principles and Guidelines
+## 2. Agent in Time: Past, Present, and Future
 
-Imagine you are designing a Travel Agent, here is how you could think about using the Design Principles and Guidelines:
+Agent behavior is not limited to the current prompt.
 
-1. **Transparency** – Let the user know that the Travel Agent is an AI-enabled Agent. Provide some basic instructions on how to get started (e.g., a “Hello” message, sample prompts). Clearly document this on the product page. Show the list of prompts a user has asked in the past. Make it clear how to give feedback (thumbs up and down, Send Feedback button, etc.). Clearly articulate if the Agent has usage or topic restrictions.
-2. **Control** – Make sure it’s clear how the user can modify the Agent after it’s been created with things like the System Prompt. Enable the user to choose how verbose the Agent is, its writing style, and any caveats on what the Agent should not talk about. Allow the user to view and delete any associated files or data, prompts, and past conversations.
-3. **Consistency** – Make sure the icons for Share Prompt, add a file or photo and tag someone or something are standard and recognizable. Use the paperclip icon to indicate file upload/sharing with the Agent, and an image icon to indicate graphics upload.
+### Past
 
-## Sample Codes
+Historical context can improve relevance.
 
-- Python: [Agent Framework](./code_samples/03-python-agent-framework.ipynb)
-- .NET: [Agent Framework](./code_samples/03-dotnet-agent-framework.md)
+For example:
 
+> “You struggled with function schemas in the previous exercise, so this example starts there.”
 
-## Got More Questions about AI Agentic Design Patterns?
+But historical data should not silently become permanent memory. Later lessons will separate **context** from **memory** more precisely.
 
-Join the [Microsoft Foundry Discord](https://discord.com/invite/ATgtXmAS5D) to meet with other learners, attend office hours and get your AI Agents questions answered.
+### Present
+
+The agent should respond to the user's current need rather than dumping everything it knows.
+
+A learner asking for a quick reminder may need three sentences, not an entire tutorial.
+
+### Future
+
+Agent experiences may adapt as the user learns, changes preferences, or moves between devices and interfaces.
+
+Adaptation should remain predictable enough that the learner can understand why the experience changed.
+
+---
+
+## 3. Agent Core: Embrace Uncertainty, Establish Trust
+
+LLM-based systems are probabilistic. We should not design as though uncertainty can be removed completely.
+
+Instead, trustworthy design makes uncertainty manageable.
+
+Important behaviors include:
+
+- expose important limitations;
+- make consequential actions visible;
+- let the user correct the system;
+- provide ways to stop, change, or reverse behavior when possible;
+- avoid pretending that model confidence is certainty.
+
+The user should know when an AI system is involved and maintain meaningful control over important decisions.
+
+---
+
+## Three Practical Guidelines
+
+### Transparency
+
+The user should be able to understand what the system is doing at the level needed to make an informed decision.
+
+For our project:
+
+- show which course files were used;
+- identify when a tool was needed;
+- explain when the agent is uncertain;
+- make restrictions discoverable.
+
+Transparency does not mean exposing private chain-of-thought. It means exposing useful evidence, actions, state, and system behavior.
+
+### Control
+
+Users should be able to influence the system where their preferences or risk are involved.
+
+Examples:
+
+- choose the depth of explanations;
+- approve a high-impact tool call;
+- correct a remembered preference;
+- delete or avoid stored information where memory is supported.
+
+### Consistency
+
+Similar actions should behave similarly across the product.
+
+If one destructive action requires confirmation and another equally destructive action happens automatically, the interface teaches the user the wrong mental model.
+
+Consistency lowers cognitive load and helps people predict the agent's behavior.
+
+---
+
+## Concrete Example: Designing the AI Learning Agent Before Adding Tools
+
+A learner says:
+
+> “Find what I should study about tool use and create a practice task.”
+
+Before writing code, design the experience.
+
+### Step 1: Define the learner's goal
+
+The learner wants a small, useful path — not every resource in the repository.
+
+### Step 2: Define visible agent behavior
+
+The agent may:
+
+1. identify relevant lessons;
+2. tell the learner what it found;
+3. recommend a short order;
+4. create one exercise;
+5. show the sources it relied on.
+
+### Step 3: Define boundaries
+
+The agent should not:
+
+- modify repository files merely because the learner asked for study help;
+- save personal information by default;
+- claim a lesson says something it did not verify;
+- take unrelated external actions.
+
+### Step 4: Define user control
+
+If later versions can save progress, the learner should know that this is happening and have a way to change that state.
+
+This design is useful *before* we implement `search_lessons()` in the next lesson.
+
+---
+
+## Travel Agent Example
+
+The same principles apply to the original travel scenario.
+
+### Transparency
+
+Tell the user that the agent is AI-enabled, show the important booking details, and make restrictions visible.
+
+### Control
+
+Let the user confirm destinations, dates, preferences, and especially purchases or cancellations before irreversible actions occur.
+
+### Consistency
+
+Use predictable interaction patterns for booking, modifying, and cancelling travel. The user should not have to guess which actions are automatic.
+
+---
+
+## Hands-On: Design Before Code
+
+Design the next version of the AI Learning Agent without writing implementation code.
+
+For the request:
+
+> “Quero aprender RAG. Encontre o conteúdo certo e crie um exercício para mim.”
+
+Write the following:
+
+1. **Goal** — what outcome does the learner want?
+2. **Agent actions** — what may the system do?
+3. **Visible evidence** — what should it show about those actions?
+4. **User controls** — where can the learner correct, approve, or stop behavior?
+5. **Boundaries** — what should the agent explicitly not do?
+6. **Uncertainty behavior** — what should happen if the agent cannot find enough evidence?
+
+### Deliverable
+
+A one-page design sketch containing all six elements.
+
+---
+
+## Failure Mode: Designing for Maximum Autonomy
+
+A tempting assumption is:
+
+> “The best agent is the one that asks the user for the least input.”
+
+That is not always true.
+
+Removing every confirmation may reduce friction, but it can also remove meaningful control.
+
+The right amount of autonomy depends on the consequence of the action.
+
+Compare:
+
+- searching course files;
+- recommending a lesson;
+- saving a preference;
+- sending an email;
+- buying a flight;
+- deleting data.
+
+These should not all share the same approval policy.
+
+---
+
+## Trade-Off: Convenience vs. Control
+
+More autonomous behavior can make an experience faster.
+
+More user control can make it safer and more predictable.
+
+Good agent design chooses that boundary deliberately rather than using a universal rule.
+
+A useful question is:
+
+> **If the agent makes the wrong choice here, what happens next?**
+
+The more serious the consequence, the stronger the case for explicit validation, approval, or reversibility.
+
+---
+
+## Trust Check
+
+Before adding a capability to an agent, ask:
+
+- Does the user know the capability exists?
+- Can the user understand when it is being used?
+- Is the amount of autonomy proportional to the risk?
+- Can the action be corrected or reversed?
+- What evidence will help the user or developer understand a failure?
+
+We will turn several of these ideas into concrete guardrails in Lesson 06.
+
+---
+
+## Guided Code Samples
+
+The lesson includes implementation samples that you can inspect after you have designed the behavior:
+
+- Python: [`code_samples/03-python-agent-framework.ipynb`](./code_samples/03-python-agent-framework.ipynb)
+- .NET: [`code_samples/03-dotnet-agent-framework.md`](./code_samples/03-dotnet-agent-framework.md)
+
+As you read the sample, do not only ask “What does this API do?”
+
+Also ask:
+
+> “What user-experience decision does this code implement?”
+
+---
+
+## Checkpoint
+
+Explain these in your own words:
+
+1. Why is technical correctness not enough for an agent experience?
+2. What does transparency mean without exposing private model reasoning?
+3. Give one example where more autonomy improves the experience.
+4. Give one example where more autonomy creates unacceptable risk.
+5. What should be designed before choosing tools or framework APIs?
+
+---
+
+## AI Learning Agent Progress
+
+**Before:** We had a technical structure for building the agent.
+
+**Now:** We have defined how the learner should experience that system — including visibility, control, boundaries, and uncertainty.
+
+We still have not given the agent an external tool.
+
+That is deliberate.
+
+**We design the behavior before increasing the capability.**
+
+---
+
+## One-Line Takeaway
+
+> **Good agent design is not maximum autonomy; it is useful autonomy with understandable boundaries and meaningful human control.**
+
+---
 
 ## Additional Resources
 
 - <a href="https://openai.com" target="_blank">Practices for Governing Agentic AI Systems | OpenAI</a>
 - <a href="https://microsoft.com" target="_blank">The HAX Toolkit Project - Microsoft Research</a>
 - <a href="https://responsibleaitoolbox.ai" target="_blank">Responsible AI Toolbox</a>
+
+## Got More Questions about AI Agentic Design Patterns?
+
+Join the [Microsoft Foundry Discord](https://discord.com/invite/ATgtXmAS5D) to meet with other learners, attend office hours, and get your AI Agents questions answered.
 
 ## Previous Lesson
 
