@@ -1,145 +1,454 @@
 [![Agentic RAG](./images/lesson-5-thumbnail.png)](https://youtu.be/WcjAARvdL7I?si=BCgwjwFb2yCkEhR9)
 
-> _(Click the image above to view video of this lesson)_
+> _(Click the image above to view the video for this lesson)_
 
 # Agentic RAG
 
-This lesson provides a comprehensive overview of Agentic Retrieval-Augmented Generation (Agentic RAG), an emerging AI paradigm where large language models (LLMs) autonomously plan their next steps while pulling information from external sources. Unlike static retrieval-then-read patterns, Agentic RAG involves iterative calls to the LLM, interspersed with tool or function calls and structured outputs. The system evaluates results, refines queries, invokes additional tools if needed, and continues this cycle until a satisfactory solution is achieved.
+## Big Picture
 
-## Introduction
+In Lesson 04, our AI Learning Agent gained its first tool. It can now search outside the model.
 
-This lesson will cover
+But a new problem appears immediately:
 
-- **Understand Agentic RAG:**  Learn about the emerging paradigm in AI where large language models (LLMs) autonomously plan their next steps while pulling information from external data sources.
-- **Grasp Iterative Maker-Checker Style:** Comprehend the loop of iterative calls to the LLM, interspersed with tool or function calls and structured outputs, designed to improve correctness and handle malformed queries.
-- **Explore Practical Applications:** Identify scenarios where Agentic RAG shines, such as correctness-first environments, complex database interactions, and extended workflows.
+> **Retrieving something is not the same as answering from evidence.**
 
-## Learning Goals
+By the end of this lesson, you should be able to explain the difference between ordinary RAG and Agentic RAG, design a retrieval loop that can refine its search, and recognize when the agent should stop, retry, or ask for help.
 
-After completing this lesson, you will know how to/understand:
+---
 
-- **Understanding Agentic RAG:** Learn about the emerging paradigm in AI where large language models (LLMs) autonomously plan their next steps while pulling information from external data sources.
-- **Iterative Maker-Checker Style:** Grasp the concept of a loop of iterative calls to the LLM, interspersed with tool or function calls and structured outputs, designed to improve correctness and handle malformed queries.
-- **Owning the Reasoning Process:** Comprehend the system's ability to own its reasoning process, making decisions on how to approach problems without relying on pre-defined paths.
-- **Workflow:** Understand how an agentic model independently decides to retrieve market trend reports, identify competitor data, correlate internal sales metrics, synthesize findings, and evaluate the strategy.
-- **Iterative Loops, Tool Integration, and Memory:** Learn about the system's reliance on a looped interaction pattern, maintaining state and memory across steps to avoid repetitive loops and make informed decisions.
-- **Handling Failure Modes and Self-Correction:** Explore the system's robust self-correction mechanisms, including iterating and re-querying, using diagnostic tools, and falling back on human oversight.
-- **Boundaries of Agency:** Understand the limitations of Agentic RAG, focusing on domain-specific autonomy, infrastructure dependence, and respect for guardrails.
-- **Practical Use Cases and Value:** Identify scenarios where Agentic RAG shines, such as correctness-first environments, complex database interactions, and extended workflows.
-- **Governance, Transparency, and Trust:** Learn about the importance of governance and transparency, including explainable reasoning, bias control, and human oversight.
+## Before This Lesson: We Can Search, but We Can Still Be Wrong
 
-## What is Agentic RAG?
+Suppose the learner asks:
 
-Agentic Retrieval-Augmented Generation (Agentic RAG) is an emerging AI paradigm where large language models (LLMs) autonomously plan their next steps while pulling information from external sources. Unlike static retrieval-then-read patterns, Agentic RAG involves iterative calls to the LLM, interspersed with tool or function calls and structured outputs. The system evaluates results, refines queries, invokes additional tools if needed, and continues this cycle until a satisfactory solution is achieved. This iterative “maker-checker” style improves correctness, handles malformed queries, and ensures high-quality results.
+> “Qual é a melhor sequência para estudar RAG neste curso?”
 
-The system actively owns its reasoning process, rewriting failed queries, choosing different retrieval methods, and integrating multiple tools—such as vector search in Azure AI Search, SQL databases, or custom APIs—before finalizing its answer. The distinguishing quality of an agentic system is its ability to own its reasoning process. Traditional RAG implementations rely on pre-defined paths, but an agentic system autonomously determines the sequence of steps based on the quality of the information it finds.
+Our `search_lessons()` tool returns three files.
 
-## Defining Agentic Retrieval-Augmented Generation (Agentic RAG)
+That sounds good, but several things can still go wrong:
 
-Agentic Retrieval-Augmented Generation (Agentic RAG) is an emerging paradigm in AI development where LLMs not only pull information from external data sources but also autonomously plan their next steps. Unlike static retrieval-then-read patterns or carefully scripted prompt sequences, Agentic RAG involves a loop of iterative calls to the LLM, interspersed with tool or function calls and structured outputs. At every turn, the system evaluates the results it has obtained, decides whether to refine its queries, invokes additional tools if needed, and continues this cycle until it achieves a satisfactory solution.
+- the search query may be too broad;
+- the top result may mention RAG only briefly;
+- relevant information may be spread across multiple lessons;
+- the agent may summarize something that the source does not actually say;
+- the first retrieval attempt may simply be poor.
 
-This iterative “maker-checker” style of operation is designed to improve correctness, handle malformed queries to structured databases (e.g. NL2SQL), and ensure balanced, high-quality results. Rather than relying solely on carefully engineered prompt chains, the system actively owns its reasoning process. It can rewrite queries that fail, choose different retrieval methods, and integrate multiple tools—such as vector search in Azure AI Search, SQL databases, or custom APIs—before finalizing its answer. This removes the need for overly complex orchestration frameworks. Instead, a relatively simple loop of “LLM call → tool use → LLM call → …” can yield sophisticated and well-grounded outputs.
+The problem is no longer access.
 
-![Agentic RAG Core Loop](./images/agentic-rag-core-loop.png)
+The problem is **grounding the answer in useful evidence**.
 
-## Owning the Reasoning Process
+---
 
-The distinguishing quality that makes a system “agentic” is its ability to own its reasoning process. Traditional RAG implementations often depend on humans pre-defining a path for the model: a chain-of-thought that outlines what to retrieve and when.
-But when a system is truly agentic, it internally decides how to approach the problem. It’s not just executing a script; it’s autonomously determining the sequence of steps based on the quality of the information it finds.
-For example, if it’s asked to create a product launch strategy, it doesn’t rely solely on a prompt that spells out the entire research and decision-making workflow. Instead, the agentic model independently decides to:
+## The New Capability: Retrieval-Augmented Generation
 
-1. Retrieve current market trend reports using Bing Web Grounding
-2. Identify relevant competitor data using Azure AI Search.
-3.	Correlate historical internal sales metrics using Azure SQL Database.
-4. Synthesize the findings into a cohesive strategy orchestrated via Azure OpenAI Service.
-5.	Evaluate the strategy for gaps or inconsistencies, prompting another round of retrieval if necessary.
-All of these steps—refining queries, choosing sources, iterating until “happy” with the answer—are decided by the model, not pre-scripted by a human.
+### What is RAG?
 
-## Iterative Loops, Tool Integration, and Memory
+**Retrieval-Augmented Generation (RAG)** means retrieving external information and giving that information to the model so the answer can be grounded in source material.
 
-![Tool Integration Architecture](./images/tool-integration.png)
+A basic RAG flow looks like this:
 
-An agentic system relies on a looped interaction pattern:
+```text
+User question
+    ↓
+Retrieve relevant documents
+    ↓
+Add retrieved content to model context
+    ↓
+Generate grounded answer
+```
 
-- **Initial Call:** The user’s goal (aka. user prompt) is presented to the LLM.
-- **Tool Invocation:** If the model identifies missing information or ambiguous instructions, it selects a tool or retrieval method—like a vector database query (e.g. Azure AI Search Hybrid search over private data) or a structured SQL call—to gather more context.
-- **Assessment & Refinement:** After reviewing the returned data, the model decides whether the information suffices. If not, it refines the query, tries a different tool, or adjusts its approach.
-- **Repeat Until Satisfied:** This cycle continues until the model determines that it has enough clarity and evidence to deliver a final, well-reasoned response.
-- **Memory & State:** Because the system maintains state and memory across steps, it can recall previous attempts and their outcomes, avoiding repetitive loops and making more informed decisions as it proceeds.
+### Why does it matter?
 
-Over time, this creates a sense of evolving understanding, enabling the model to navigate complex, multi-step tasks without requiring a human to constantly intervene or reshape the prompt.
+A model may know general facts about AI agents, but our course assistant should answer questions about **this repository** from the repository itself.
 
-## Handling Failure Modes and Self-Correction
+RAG lets us separate:
 
-Agentic RAG’s autonomy also involves robust self-correction mechanisms. When the system hits dead ends—such as retrieving irrelevant documents or encountering malformed queries—it can:
+- what the model already knows;
+- what the application retrieves;
+- what evidence supports the final answer.
 
-- **Iterate and Re-Query:** Instead of returning low-value responses, the model attempts new search strategies, rewrites database queries, or looks at alternative data sets.
-- **Use Diagnostic Tools:** The system may invoke additional functions designed to help it debug its reasoning steps or confirm the correctness of retrieved data. Tools like Azure AI Tracing will be important to enable robust observability and monitoring.
-- **Fallback on Human Oversight:** For high-stakes or repeatedly failing scenarios, the model might flag uncertainty and request human guidance. Once the human provides corrective feedback, the model can incorporate that lesson going forward.
+### How is Agentic RAG different?
 
-This iterative and dynamic approach allows the model to improve continuously, ensuring that it’s not just a one-shot system but one that learns from its missteps during a given session.
+Traditional RAG often uses a fixed path:
 
-![Self Correction Mechanism](./images/self-correction.png)
+```text
+retrieve once → generate once
+```
 
-## Boundaries of Agency
+**Agentic RAG** lets the system decide whether the retrieved evidence is sufficient and take another retrieval action when needed.
 
-Despite its autonomy within a task, Agentic RAG is not analogous to Artificial General Intelligence. Its “agentic” capabilities are confined to the tools, data sources, and policies provided by human developers. It can’t invent its own tools or step outside the domain boundaries that have been set. Rather, it excels at dynamically orchestrating the resources at hand.
-Key differences from more advanced AI forms include:
+```text
+Question
+   ↓
+Retrieve
+   ↓
+Evaluate evidence
+   ↓
+Enough? ── yes ──→ Answer
+   │
+   no
+   ↓
+Rewrite query / choose another source
+   ↓
+Retrieve again
+```
 
-1. **Domain-Specific Autonomy:** Agentic RAG systems are focused on achieving user-defined goals within a known domain, employing strategies like query rewriting or tool selection to improve outcomes.
-2. **Infrastructure-Dependent:** The system’s capabilities hinge on the tools and data integrated by developers. It can’t surpass these boundaries without human intervention.
-3. **Respect for Guardrails:** Ethical guidelines, compliance rules, and business policies remain very important. The agent’s freedom is always constrained by safety measures and oversight mechanisms (hopefully?)
+The important idea is not “more loops.”
 
-## Practical Use Cases and Value
+The important idea is **adaptive retrieval based on what the system finds**.
 
-Agentic RAG shines in scenarios requiring iterative refinement and precision:
+---
 
-1. **Correctness-First Environments:** In compliance checks, regulatory analysis, or legal research, the agentic model can repeatedly verify facts, consult multiple sources, and rewrite queries until it produces a thoroughly vetted answer.
-2. **Complex Database Interactions:** When dealing with structured data where queries might often fail or need adjustment, the system can autonomously refine its queries using Azure SQL or Microsoft Fabric OneLake, ensuring the final retrieval aligns with the user’s intent.
-3. **Extended Workflows:** Longer-running sessions might evolve as new information surfaces. Agentic RAG can continuously incorporate new data, shifting strategies as it learns more about the problem space.
+## Concrete Example: AI Learning Agent v2
 
-## Governance, Transparency, and Trust
+The learner asks:
 
-As these systems become more autonomous in their reasoning, governance and transparency are crucial:
+> “Quero aprender como agentes usam ferramentas. O que devo ler primeiro e por quê?”
 
-- **Explainable Reasoning:** The model can provide an audit trail of the queries it made, the sources it consulted, and the reasoning steps it took to reach its conclusion. Tools like Azure AI Content Safety and Azure AI Tracing / GenAIOps can help maintain transparency and mitigate risks.
-- **Bias Control and Balanced Retrieval:** Developers can tune retrieval strategies to ensure balanced, representative data sources are considered, and regularly audit outputs to detect bias or skewed patterns using custom models for advanced data science organizations using Azure Machine Learning.
-- **Human Oversight and Compliance:** For sensitive tasks, human review remains essential. Agentic RAG doesn’t replace human judgment in high-stakes decisions—it augments it by delivering more thoroughly vetted options.
+A weak implementation might search once for `tools` and summarize the first result.
 
-Having tools that provide a clear record of actions is essential. Without them, debugging a multi-step process can be very difficult. See the following example from Literal AI (company behind Chainlit) for an Agent run:
+A stronger flow can look like this:
 
-![AgentRunExample](./images/AgentRunExample.png)
+1. search for `tool use`;
+2. inspect Lesson 04;
+3. notice that frameworks are referenced as prerequisite context;
+4. inspect Lesson 02;
+5. build a short sequence: Lesson 02 → Lesson 04;
+6. cite the files used;
+7. explain why that order makes sense.
 
-## Conclusion
+Now the agent is not merely retrieving a document. It is using retrieval as part of a multi-step information-gathering process.
 
-Agentic RAG represents a natural evolution in how AI systems handle complex, data-intensive tasks. By adopting a looped interaction pattern, autonomously selecting tools, and refining queries until achieving a high-quality result, the system moves beyond static prompt-following into a more adaptive, context-aware decision-maker. While still bounded by human-defined infrastructures and ethical guidelines, these agentic capabilities enable richer, more dynamic, and ultimately more useful AI interactions for both enterprises and end-users.
+> **AI Learning Agent v2 can ground its recommendations in retrieved course material and refine its search when the first result is insufficient.**
 
-### Got More Questions about Agentic RAG?
+---
 
-Join the [Microsoft Foundry Discord](https://discord.com/invite/ATgtXmAS5D) to meet with other learners, attend office hours and get your AI Agents questions answered.
+## The Agentic Retrieval Loop
+
+A useful mental model is:
+
+### 1. Understand the information need
+
+What evidence is actually required to answer the user's question?
+
+### 2. Choose a retrieval action
+
+Examples:
+
+- vector or hybrid search;
+- file search;
+- SQL query;
+- web search;
+- custom repository search.
+
+### 3. Inspect the result
+
+The system should ask whether the result is:
+
+- relevant;
+- specific enough;
+- current enough for the task;
+- supported by the expected source.
+
+### 4. Refine if needed
+
+The agent may:
+
+- rewrite the search query;
+- narrow the scope;
+- query another source;
+- retrieve supporting evidence.
+
+### 5. Stop deliberately
+
+A loop needs a stopping rule.
+
+Possible conditions:
+
+- enough evidence was found;
+- a maximum number of retrieval attempts was reached;
+- remaining uncertainty requires human clarification;
+- a source is unavailable.
+
+Without stopping conditions, “agentic” can become an expensive infinite retry loop.
+
+---
+
+## What Agentic RAG Is Not
+
+Agentic RAG does not mean the system has unlimited autonomy.
+
+Its agency is bounded by:
+
+- available retrieval tools;
+- accessible data;
+- application policies;
+- tool permissions;
+- time/cost limits;
+- human approval rules.
+
+The agent can choose among the retrieval strategies you expose. It cannot safely invent arbitrary access to systems you did not provide.
+
+---
+
+## Retrieval Sources
+
+Agentic RAG may combine different information sources.
+
+### Unstructured documents
+
+Examples:
+
+- Markdown files;
+- PDFs;
+- documentation;
+- support articles.
+
+Often accessed through file search, embeddings, vector search, or hybrid search.
+
+### Structured data
+
+Examples:
+
+- SQL databases;
+- analytics stores;
+- CRM records.
+
+Structured retrieval often needs careful validation because generated queries can fail or request inappropriate data.
+
+### External/current sources
+
+Examples:
+
+- APIs;
+- web search;
+- live business systems.
+
+These can improve freshness but introduce reliability, security, and provenance concerns.
+
+---
+
+## Failure Mode: Irrelevant Retrieval
+
+Imagine the search returns a document that contains the phrase “tool use” but is actually about deployment.
+
+If the agent trusts rank alone, it may produce a polished but poorly grounded answer.
+
+A better system asks:
+
+> Does this retrieved content actually answer the information need?
+
+Possible responses include:
+
+- retrieve more candidates;
+- use a more specific query;
+- inspect metadata;
+- require multiple supporting sources for high-stakes claims.
+
+---
+
+## Failure Mode: Query Failure
+
+Structured queries can fail syntactically or semantically.
+
+An agentic system may retry with a corrected query, but retries need boundaries.
+
+A useful pattern is:
+
+```text
+Attempt query
+    ↓
+Success? → inspect result
+    ↓ no
+Classify failure
+    ↓
+Safe to retry? → rewrite and retry
+    ↓ no
+Stop / escalate
+```
+
+Blind retrying is not self-correction. It is repeated failure.
+
+---
+
+## Failure Mode: Retrieval Loops
+
+Suppose the agent repeatedly decides:
+
+> “I need one more search.”
+
+Every extra retrieval increases:
+
+- latency;
+- token usage;
+- API cost;
+- opportunity for irrelevant context.
+
+Useful safeguards include:
+
+- maximum iteration count;
+- per-request budget;
+- minimum evidence threshold;
+- duplicate-query detection;
+- human fallback.
+
+---
+
+## Memory and State Inside a Retrieval Session
+
+During one agent run, the system should remember what it already tried.
+
+For example:
+
+```text
+Attempt 1: "RAG"
+Result: too broad
+
+Attempt 2: "agentic RAG retrieval loop"
+Result: Lesson 05
+
+Attempt 3: "context engineering RAG"
+Result: Lesson 12
+```
+
+This is **working state for the current task**.
+
+Do not automatically confuse it with long-term memory about the user. We will separate those ideas in Lessons 12 and 13.
+
+---
+
+## Evidence and Citations
+
+A grounded system should make it possible to answer:
+
+> “Where did this claim come from?”
+
+For the AI Learning Agent, the easiest evidence is the course file path or lesson link used during retrieval.
+
+Example:
+
+```text
+Recommended first:
+- Lesson 04 — Tool Use
+
+Why:
+It introduces function/tool calling before Lesson 05 builds retrieval workflows on top of tool use.
+
+Sources used:
+- 04-tool-use/README.md
+- 05-agentic-rag/README.md
+```
+
+Citations do not guarantee correctness, but they make verification and debugging much easier.
+
+---
+
+## Hands-On: Design an Agentic Retrieval Loop
+
+For the request:
+
+> “Quero aprender memória de agentes, mas primeiro preciso entender os pré-requisitos.”
+
+Design a retrieval trace with:
+
+1. initial search query;
+2. expected result;
+3. evidence-quality check;
+4. one possible query refinement;
+5. stopping condition;
+6. final sources shown to the learner.
+
+### Deliverable
+
+A retrieval plan with **at least two possible search steps** and an explicit reason the loop stops.
+
+---
+
+## Guided Code Samples
+
+Inspect the existing lesson implementations after you understand the retrieval loop:
+
+- Python: [`code_samples/05-python-agent-framework.ipynb`](./code_samples/05-python-agent-framework.ipynb)
+- .NET notebook: [`code_samples/05-dotnet-agent-framework.ipynb`](./code_samples/05-dotnet-agent-framework.ipynb)
+- .NET walkthrough: [`code_samples/05-dotnet-agent-framework.md`](./code_samples/05-dotnet-agent-framework.md)
+- Sample source document: [`code_samples/document.md`](./code_samples/document.md)
+
+As you read the code, identify:
+
+```text
+User information need
+Retrieval tool
+Retrieved evidence
+Decision to continue or stop
+Final grounded response
+```
+
+---
+
+## Trust Check
+
+Agentic retrieval creates its own risks.
+
+Ask:
+
+- Which sources is the agent allowed to query?
+- Can retrieved content contain malicious instructions?
+- How do we distinguish source data from trusted system instructions?
+- What happens if the knowledge source is poisoned or outdated?
+- Do sensitive queries require access controls?
+- What evidence is logged for later review?
+
+These questions connect directly to Lesson 06.
+
+---
+
+## Optional: Smoke Test After Deployment
+
+After reaching [Lesson 16](../16-deploying-scalable-agents/README.md), you can smoke-test the deployed Lesson 05 `TravelRAGAgent` with [`tests/lesson-05-smoke-tests.json`](../tests/lesson-05-smoke-tests.json). See [`tests/README.md`](../tests/README.md).
+
+---
+
+## Checkpoint
+
+Explain these in your own words:
+
+1. What does RAG add that a normal model response does not?
+2. What makes Agentic RAG different from a fixed retrieve-then-generate pipeline?
+3. Why does an agentic retrieval loop need an explicit stopping rule?
+4. What is the difference between retrieval state in one run and long-term user memory?
+5. What should the system do when the first retrieval result is weak?
+6. Why are source traces useful even when the final answer looks correct?
+
+---
+
+## AI Learning Agent Progress
+
+**Before:** AI Learning Agent v1 could call a search tool.
+
+**Now:** **AI Learning Agent v2 can use retrieved course material as evidence, refine retrieval when needed, and show the learner which sources supported the answer.**
+
+That increased capability also increases risk.
+
+The next question is:
+
+> What prevents a capable agent from using the right tool in the wrong way?
+
+That is the focus of Lesson 06.
+
+---
+
+## One-Line Takeaway
+
+> **Agentic RAG is not just search plus an LLM; it is an evidence-gathering loop that can adapt its retrieval strategy while remaining bounded by explicit tools and stopping rules.**
+
+---
 
 ## Additional Resources
 
-- <a href="https://learn.microsoft.com/training/modules/use-own-data-azure-openai" target="_blank">Implement Retrieval Augmented Generation (RAG) with Azure OpenAI Service: Learn how to use your own data with the Azure OpenAI Service. This Microsoft Learn module provides a comprehensive guide on implementing RAG</a>
-- <a href="https://learn.microsoft.com/azure/ai-studio/concepts/evaluation-approach-gen-ai" target="_blank">Evaluation of generative AI applications with Microsoft Foundry: This article covers the evaluation and comparison of models on publicly available datasets, including Agentic AI applications and RAG architectures</a>
+- <a href="https://learn.microsoft.com/training/modules/use-own-data-azure-openai" target="_blank">Implement Retrieval Augmented Generation (RAG) with Azure OpenAI Service</a>
+- <a href="https://learn.microsoft.com/azure/ai-studio/concepts/evaluation-approach-gen-ai" target="_blank">Evaluation of generative AI applications with Microsoft Foundry</a>
 - <a href="https://weaviate.io/blog/what-is-agentic-rag" target="_blank">What is Agentic RAG | Weaviate</a>
-- <a href="https://ragaboutit.com/agentic-rag-a-complete-guide-to-agent-based-retrieval-augmented-generation/" target="_blank">Agentic RAG: A Complete Guide to Agent-Based Retrieval Augmented Generation – News from generation RAG</a>
-- <a href="https://huggingface.co/learn/cookbook/agent_rag" target="_blank">Agentic RAG: turbocharge your RAG with query reformulation and self-query! Hugging Face Open-Source AI Cookbook</a>
-- <a href="https://youtu.be/aQ4yQXeB1Ss?si=2HUqBzHoeB5tR04U" target="_blank">Adding Agentic Layers to RAG</a>
-- <a href="https://www.youtube.com/watch?v=zeAyuLc_f3Q&t=244s" target="_blank">The Future of Knowledge Assistants: Jerry Liu</a>
-- <a href="https://www.youtube.com/watch?v=AOSjiXP1jmQ" target="_blank">How to Build Agentic RAG Systems</a>
-- <a href="https://ignite.microsoft.com/sessions/BRK102?source=sessions" target="_blank">Using Microsoft Foundry Agent Service to scale your AI agents</a>
-
-### Academic Papers
-
-- <a href="https://arxiv.org/abs/2303.17651" target="_blank">2303.17651 Self-Refine: Iterative Refinement with Self-Feedback</a>
-- <a href="https://arxiv.org/abs/2303.11366" target="_blank">2303.11366 Reflexion: Language Agents with Verbal Reinforcement Learning</a>
-- <a href="https://arxiv.org/abs/2305.11738" target="_blank">2305.11738 CRITIC: Large Language Models Can Self-Correct with Tool-Interactive Critiquing</a>
-- <a href="https://arxiv.org/abs/2501.09136" target="_blank">2501.09136 Agentic Retrieval-Augmented Generation: A Survey on Agentic RAG</a>
-
-## Smoke-Testing This Agent (Optional)
-
-After you learn to deploy agents in [Lesson 16](../16-deploying-scalable-agents/README.md), you can smoke-test this lesson's `TravelRAGAgent` — checking that its answers stay grounded in the knowledge base — with [`tests/lesson-05-smoke-tests.json`](../tests/lesson-05-smoke-tests.json). See [`tests/README.md`](../tests/README.md) for how to run it.
+- <a href="https://huggingface.co/learn/cookbook/agent_rag" target="_blank">Hugging Face Agentic RAG cookbook</a>
+- <a href="https://arxiv.org/abs/2501.09136" target="_blank">Agentic Retrieval-Augmented Generation: A Survey on Agentic RAG</a>
 
 ## Previous Lesson
 
