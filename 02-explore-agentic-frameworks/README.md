@@ -1,75 +1,174 @@
 [![Exploring AI Agent Frameworks](./images/lesson-2-thumbnail.png)](https://youtu.be/ODwF-EZo_O8?si=1xoy_B9RNQfrYdF7)
 
-> _(Click the image above to view video of this lesson)_
+> _(Click the image above to view the video for this lesson)_
 
 # Explore AI Agent Frameworks
 
-AI agent frameworks are software platforms designed to simplify the creation, deployment, and management of AI agents. These frameworks provide developers with pre-built components, abstractions, and tools that streamline the development of complex AI systems.
+## Big Picture
 
-These frameworks help developers focus on the unique aspects of their applications by providing standardized approaches to common challenges in AI agent development. They enhance scalability, accessibility, and efficiency in building AI systems.
+In Lesson 01, we learned to recognize an agent as a **system**, not just a model prompt. That immediately creates a practical engineering question:
 
-## Introduction 
+> If an agent needs models, instructions, tools, state, retries, approvals, and observability, do we really want to wire all of that ourselves every time?
 
-This lesson will cover:
+By the end of this lesson, you should be able to explain **why agent frameworks exist**, identify which responsibilities they can take over, and distinguish a development framework from the managed infrastructure where an agent may run.
 
-- What are AI Agent Frameworks and what do they enable developers to achieve?
-- How can teams use these to quickly prototype, iterate, and improve their agent’s capabilities?
-- What are the differences between the frameworks and tools created by Microsoft (<a href="https://aka.ms/ai-agents-beginners/ai-agent-service" target="_blank">Microsoft Foundry Agent Service</a> and the <a href="https://learn.microsoft.com/azure/ai-services/openai/how-to/responses" target="_blank">Microsoft Agent Framework</a>)?
-- Can I integrate my existing Azure ecosystem tools directly, or do I need standalone solutions?
-- What is Microsoft Foundry Agent Service and how is this helping me?
+---
 
-## Learning goals
+## Before This Lesson: We Know the Parts, but We Have No Structure
 
-The goals of this lesson are to help you understand:
+Our continuous project is the **AI Learning Agent**.
 
-- The role of AI Agent Frameworks in AI development.
-- How to leverage AI Agent Frameworks to build intelligent agents.
-- Key capabilities enabled by AI Agent Frameworks.
-- The differences between the Microsoft Agent Framework and Microsoft Foundry Agent Service.
+A learner asks:
 
-## What are AI Agent Frameworks and what do they enable developers to do?
+> “Quero aprender Tool Use. O que devo estudar primeiro?”
 
-Traditional AI Frameworks can help you integrate AI into your apps and make these apps better in the following ways:
+At the end of Lesson 01, we can sketch the system:
 
-- **Personalization**: AI can analyze user behavior and preferences to provide personalized recommendations, content, and experiences.
-Example: Streaming services like Netflix use AI to suggest movies and shows based on viewing history, enhancing user engagement and satisfaction.
-- **Automation and Efficiency**: AI can automate repetitive tasks, streamline workflows, and improve operational efficiency.
-Example: Customer service apps use AI-powered chatbots to handle common inquiries, reducing response times and freeing up human agents for more complex issues.
-- **Enhanced User Experience**: AI can improve the overall user experience by providing intelligent features such as voice recognition, natural language processing, and predictive text.
-Example: Virtual assistants like Siri and Google Assistant use AI to understand and respond to voice commands, making it easier for users to interact with their devices.
+```text
+User request
+    ↓
+Model
+    ↓
+Possible actions / tools
+    ↓
+Result
+    ↓
+Final response
+```
 
-### That all sounds great right, so why do we need the AI Agent Framework?
+But this diagram hides a lot of software work.
 
-AI Agent frameworks represent something more than just AI frameworks. They are designed to enable the creation of intelligent agents that can interact with users, other agents, and the environment to achieve specific goals. These agents can exhibit autonomous behavior, make decisions, and adapt to changing conditions. Let's look at some key capabilities enabled by AI Agent Frameworks:
+Someone still has to:
 
-- **Agent Collaboration and Coordination**: Enable the creation of multiple AI agents that can work together, communicate, and coordinate to solve complex tasks.
-- **Task Automation and Management**: Provide mechanisms for automating multi-step workflows, task delegation, and dynamic task management among agents.
-- **Contextual Understanding and Adaptation**: Equip agents with the ability to understand context, adapt to changing environments, and make decisions based on real-time information.
+- configure the model connection;
+- send instructions and conversation messages;
+- describe tools in a format the model understands;
+- execute the selected tool safely;
+- return tool results to the model;
+- maintain state across multiple steps;
+- record enough information to debug failures;
+- handle authentication and service integration.
 
-So in summary, agents allow you to do more, to take automation to the next level, to create more intelligent systems that can adapt and learn from their environment.
+You *can* build those pieces directly. In fact, understanding the underlying loop is valuable.
 
-## How to quickly prototype, iterate, and improve the agent’s capabilities?
+The problem is repetition.
 
-This is a fast-moving landscape, but there are some things that are common across most AI Agent Frameworks that can help you quickly prototype and iterate namely module components, collaborative tools, and real-time learning. Let's dive into these:
+---
 
-- **Use Modular Components**: AI SDKs offer pre-built components such as AI and Memory connectors, function calling using natural language or code plugins, prompt templates, and more.
-- **Leverage Collaborative Tools**: Design agents with specific roles and tasks, enabling them to test and refine collaborative workflows.
-- **Learn in Real-Time**: Implement feedback loops where agents learn from interactions and adjust their behavior dynamically.
+## The Problem: Agent Applications Repeat the Same Plumbing
 
-### Use Modular Components
+Imagine building three agents:
 
-SDKs like the Microsoft Agent Framework offer pre-built components such as AI connectors, tool definitions, and agent management.
+1. a course helper;
+2. a travel assistant;
+3. a support agent.
 
-**How teams can use these**: Teams can quickly assemble these components to create a functional prototype without starting from scratch, allowing for rapid experimentation and iteration.
+Their business logic is different, but many infrastructure needs are the same.
 
-**How it works in practice**: You can use a pre-built parser to extract information from user input, a memory module to store and retrieve data, and a prompt generator to interact with users, all without having to build these components from scratch.
+Without a reusable abstraction, every team may invent a different way to represent tools, messages, state, retries, and agent execution. That increases code, inconsistency, and debugging effort.
 
-**Example code**. Let's look at an example of how you can use the Microsoft Agent Framework with `FoundryChatClient` to have the model respond to user input with tool calling:
+This is the problem agent frameworks try to solve.
 
-``` python
-# Microsoft Agent Framework Python Example
+---
 
-import asyncio
+## The New Capability: Reusable Agent Building Blocks
+
+### What is an AI agent framework?
+
+An **agent framework** is a software library or SDK that packages common agent-building patterns into reusable components.
+
+Instead of implementing every model/tool interaction from scratch, you work with concepts such as:
+
+- agents;
+- instructions;
+- tools;
+- conversations or state;
+- workflows;
+- tracing and observability hooks.
+
+The framework does not invent your product architecture for you. It reduces the amount of repeated plumbing needed to implement that architecture.
+
+### Why does that matter?
+
+Frameworks let the developer spend more time on the questions that are specific to the application:
+
+- What is the user's goal?
+- Which tools should the agent have?
+- What data should it see?
+- What actions need approval?
+- How will we know whether it worked?
+
+### How does it work at a high level?
+
+A framework normally sits between your application logic and the lower-level model/service APIs:
+
+```text
+Your application
+      ↓
+Agent framework
+      ↓
+Model + tools + state + integrations
+```
+
+The framework coordinates these pieces through a consistent programming model.
+
+---
+
+## Framework vs. Managed Agent Service
+
+These two ideas are easy to mix up.
+
+A **framework** helps you *write and organize agent code*.
+
+A **managed agent service/platform** provides infrastructure that helps you *run, connect, manage, or operate agents* without building every infrastructure component yourself.
+
+In this repository, the main development path uses the **Microsoft Agent Framework (MAF)** together with **Microsoft Foundry** services and model deployments.
+
+A useful mental model is:
+
+| Question | Framework | Managed platform/service |
+|---|---|---|
+| How do I represent an agent in code? | Yes | Sometimes exposed through SDK/API |
+| How do I register tools? | Yes | Often integrated |
+| How do I organize workflows? | Yes | May support hosted execution |
+| Who owns the application logic? | You | You |
+| Who operates model/service infrastructure? | Depends on provider | Usually the platform |
+
+Do not choose a framework just because it has many features. Choose it because its abstractions fit the system you are actually building.
+
+---
+
+## Concrete Example: AI Learning Agent
+
+Suppose our first version needs only one capability later in the course:
+
+```python
+search_lessons(query: str) -> list[str]
+```
+
+Without a framework, we would need to manually:
+
+1. define a tool schema;
+2. send it to the model;
+3. detect whether the model requested the tool;
+4. parse the arguments;
+5. execute the Python function;
+6. pass the output back to the model;
+7. ask for a final response.
+
+With a framework, much of that interaction can be represented using higher-level agent and tool abstractions.
+
+That does **not** mean the underlying loop disappears. It means the framework manages more of it for us.
+
+---
+
+## A Minimal Microsoft Agent Framework Example
+
+The samples in this course use `FoundryChatClient` to create and run agents.
+
+A simplified example looks like this:
+
+```python
 import os
 
 from agent_framework import tool
@@ -77,52 +176,11 @@ from agent_framework.foundry import FoundryChatClient
 from azure.identity import AzureCliCredential
 
 
-# Define a sample tool function to book travel
 @tool(approval_mode="never_require")
-def book_flight(date: str, location: str) -> str:
-    """Book travel given location and date."""
-    return f"Travel was booked to {location} on {date}"
+def find_lesson(topic: str) -> str:
+    """Find a course lesson for a topic."""
+    return f"Suggested lesson for {topic}: 04-tool-use"
 
-
-async def main():
-    provider = FoundryChatClient(
-        project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-        model=os.environ["AZURE_AI_MODEL_DEPLOYMENT_NAME"],
-        credential=AzureCliCredential(),
-    )
-    agent = provider.as_agent(
-        name="travel_agent",
-        instructions="Help the user book travel. Use the book_flight tool when ready.",
-        tools=[book_flight],
-    )
-
-    response = await agent.run("I'd like to go to New York on January 1, 2025")
-    print(response)
-    # Example output: Your flight to New York on January 1, 2025, has been successfully booked. Safe travels! ✈️🗽
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-What you can see from this example is how you can leverage a pre-built parser to extract key information from user input, such as the origin, destination, and date of a flight booking request. This modular approach allows you to focus on the high-level logic.
-
-### Leverage Collaborative Tools
-
-Frameworks like the Microsoft Agent Framework facilitate the creation of multiple agents that can work together.
-
-**How teams can use these**: Teams can design agents with specific roles and tasks, enabling them to test and refine collaborative workflows and improve overall system efficiency.
-
-**How it works in practice**: You can create a team of agents where each agent has a specialized function, such as data retrieval, analysis, or decision-making. These agents can communicate and share information to achieve a common goal, such as answering a user query or completing a task.
-
-**Example code (Microsoft Agent Framework)**:
-
-```python
-# Creating multiple agents that work together using the Microsoft Agent Framework
-
-import os
-from agent_framework.foundry import FoundryChatClient
-from azure.identity import AzureCliCredential
 
 provider = FoundryChatClient(
     project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
@@ -130,281 +188,199 @@ provider = FoundryChatClient(
     credential=AzureCliCredential(),
 )
 
-# Data Retrieval Agent
-agent_retrieve = provider.as_agent(
-    name="dataretrieval",
-    instructions="Retrieve relevant data using available tools.",
-    tools=[retrieve_tool],
+agent = provider.as_agent(
+    name="learning_agent",
+    instructions="Help learners navigate the AI Agents course.",
+    tools=[find_lesson],
 )
-
-# Data Analysis Agent
-agent_analyze = provider.as_agent(
-    name="dataanalysis",
-    instructions="Analyze the retrieved data and provide insights.",
-    tools=[analyze_tool],
-)
-
-# Run agents in sequence on a task
-retrieval_result = await agent_retrieve.run("Retrieve sales data for Q4")
-analysis_result = await agent_analyze.run(f"Analyze this data: {retrieval_result}")
-print(analysis_result)
 ```
 
-What you see in the previous code is how you can create a task that involves multiple agents working together to analyze data. Each agent performs a specific function, and the task is executed by coordinating the agents to achieve the desired outcome. By creating dedicated agents with specialized roles, you can improve task efficiency and performance.
+Look at the example conceptually before focusing on syntax.
 
-### Learn in Real-Time
+The important mapping is:
 
-Advanced frameworks provide capabilities for real-time context understanding and adaptation.
-
-**How teams can use these**: Teams can implement feedback loops where agents learn from interactions and adjust their behavior dynamically, leading to continuous improvement and refinement of capabilities.
-
-**How it works in practice**: Agents can analyze user feedback, environmental data, and task outcomes to update their knowledge base, adjust decision-making algorithms, and improve performance over time. This iterative learning process enables agents to adapt to changing conditions and user preferences, enhancing overall system effectiveness.
-
-## What are the differences between the Microsoft Agent Framework and Microsoft Foundry Agent Service?
-
-There are many ways to compare these approaches, but let's look at some key differences in terms of their design, capabilities, and target use cases:
-
-## Microsoft Agent Framework (MAF)
-
-The Microsoft Agent Framework provides a streamlined SDK for building AI agents using `FoundryChatClient`. It enables developers to create agents that leverage Azure OpenAI models with built-in tool calling, conversation management, and enterprise-grade security through Azure identity.
-
-**Use Cases**: Building production-ready AI agents with tool use, multi-step workflows, and enterprise integration scenarios.
-
-Here are some important core concepts of the Microsoft Agent Framework:
-
-- **Agents**. An agent is created via `FoundryChatClient` and configured with a name, instructions, and tools. The agent can:
-  - **Process user messages** and generate responses using Azure OpenAI models.
-  - **Call tools** automatically based on the conversation context.
-  - **Maintain conversation state** across multiple interactions.
-
-  Here is a code snippet showing how to create an agent:
-
-    ```python
-    import os
-    from agent_framework.foundry import FoundryChatClient
-    from azure.identity import AzureCliCredential
-
-    provider = FoundryChatClient(
-        project_endpoint=os.environ["AZURE_AI_PROJECT_ENDPOINT"],
-        model=os.environ["AZURE_AI_MODEL_DEPLOYMENT_NAME"],
-        credential=AzureCliCredential(),
-    )
-    agent = provider.as_agent(
-        name="my_agent",
-        instructions="You are a helpful assistant.",
-    )
-
-    response = await agent.run("Hello, World!")
-    print(response)
-    ```
-
-- **Tools**. The framework supports defining tools as Python functions that the agent can invoke automatically. Tools are registered when creating the agent:
-
-    ```python
-    def get_weather(location: str) -> str:
-        """Get the current weather for a location."""
-        return f"The weather in {location} is sunny, 72\u00b0F."
-
-    agent = provider.as_agent(
-        name="weather_agent",
-        instructions="Help users check the weather.",
-        tools=[get_weather],
-    )
-    ```
-
-- **Multi-Agent Coordination**. You can create multiple agents with different specializations and coordinate their work:
-
-    ```python
-    planner = provider.as_agent(
-        name="planner",
-        instructions="Break down complex tasks into steps.",
-    )
-
-    executor = provider.as_agent(
-        name="executor",
-        instructions="Execute the planned steps using available tools.",
-        tools=[execute_tool],
-    )
-
-    plan = await planner.run("Plan a trip to Paris")
-    result = await executor.run(f"Execute this plan: {plan}")
-    ```
-
-- **Azure Identity Integration**. The framework uses `AzureCliCredential` (or `DefaultAzureCredential`) for secure, keyless authentication, eliminating the need to manage API keys directly.
-
-## Microsoft Foundry Agent Service
-
-Microsoft Foundry Agent Service is a more recent addition, introduced at Microsoft Ignite 2024. It allows for the development and deployment of AI agents with more flexible models, such as directly calling open-source LLMs like Llama 3, Mistral, and Cohere.
-
-Microsoft Foundry Agent Service provides stronger enterprise security mechanisms and data storage methods, making it suitable for enterprise applications. 
-
-It works out-of-the-box with the Microsoft Agent Framework for building and deploying agents.
-
-This service is currently in Public Preview and supports Python and C# for building agents.
-
-Using the Microsoft Foundry Agent Service Python SDK, we can create an agent with a user-defined tool:
-
-```python
-import asyncio
-from azure.identity import DefaultAzureCredential
-from azure.ai.projects import AIProjectClient
-
-# Define tool functions
-def get_specials() -> str:
-    """Provides a list of specials from the menu."""
-    return """
-    Special Soup: Clam Chowder
-    Special Salad: Cobb Salad
-    Special Drink: Chai Tea
-    """
-
-def get_item_price(menu_item: str) -> str:
-    """Provides the price of the requested menu item."""
-    return "$9.99"
-
-
-async def main() -> None:
-    credential = DefaultAzureCredential()
-    project_client = AIProjectClient.from_connection_string(
-        credential=credential,
-        conn_str="your-connection-string",
-    )
-
-    agent = project_client.agents.create_agent(
-        model="gpt-5-mini",
-        name="Host",
-        instructions="Answer questions about the menu.",
-        tools=[get_specials, get_item_price],
-    )
-
-    thread = project_client.agents.create_thread()
-
-    user_inputs = [
-        "Hello",
-        "What is the special soup?",
-        "How much does that cost?",
-        "Thank you",
-    ]
-
-    for user_input in user_inputs:
-        print(f"# User: '{user_input}'")
-        message = project_client.agents.create_message(
-            thread_id=thread.id,
-            role="user",
-            content=user_input,
-        )
-        run = project_client.agents.create_and_process_run(
-            thread_id=thread.id, agent_id=agent.id
-        )
-        messages = project_client.agents.list_messages(thread_id=thread.id)
-        print(f"# Agent: {messages.data[0].content[0].text.value}")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+```text
+FoundryChatClient → model/service connection
+agent             → instructions + capabilities
+find_lesson       → external capability
+agent.run(...)    → execution loop
 ```
 
-### Core concepts
+That mapping is more important than memorizing class names.
 
-Microsoft Foundry Agent Service has the following core concepts:
+---
 
-- **Agent**. Microsoft Foundry Agent Service integrates with Microsoft Foundry. Within Microsoft Foundry, an AI Agent acts as a "smart" microservice that can be used to answer questions (RAG), perform actions, or completely automate workflows. It achieves this by combining the power of generative AI models with tools that allow it to access and interact with real-world data sources. Here's an example of an agent:
+## What Frameworks Commonly Help With
 
-    ```python
-    agent = project_client.agents.create_agent(
-        model="gpt-5-mini",
-        name="my-agent",
-        instructions="You are helpful agent",
-        tools=code_interpreter.definitions,
-        tool_resources=code_interpreter.resources,
-    )
-    ```
+### 1. Model connections
 
-    In this example, an agent is created with the model `gpt-5-mini`, a name `my-agent`, and instructions `You are helpful agent`. The agent is equipped with tools and resources to perform code interpretation tasks.
+A consistent interface for sending requests to the model provider used by your application.
 
-- **Thread and messages**. The thread is another important concept. It represents a conversation or interaction between an agent and a user. Threads can be used to track the progress of a conversation, store context information, and manage the state of the interaction. Here's an example of a thread:
+### 2. Tool registration
 
-    ```python
-    thread = project_client.agents.create_thread()
-    message = project_client.agents.create_message(
-        thread_id=thread.id,
-        role="user",
-        content="Could you please create a bar chart for the operating profit using the following data and provide the file to me? Company A: $1.2 million, Company B: $2.5 million, Company C: $3.0 million, Company D: $1.8 million",
-    )
-    
-    # Ask the agent to perform work on the thread
-    run = project_client.agents.create_and_process_run(thread_id=thread.id, agent_id=agent.id)
-    
-    # Fetch and log all messages to see the agent's response
-    messages = project_client.agents.list_messages(thread_id=thread.id)
-    print(f"Messages: {messages}")
-    ```
+A way to describe functions and make them available to an agent.
 
-    In the previous code, a thread is created. Thereafter, a message is sent to the thread. By calling `create_and_process_run`, the agent is asked to perform work on the thread. Finally, the messages are fetched and logged to see the agent's response. The messages indicate the progress of the conversation between the user and the agent. It's also important to understand that the messages can be of different types such as text, image, or file, that is the agents work has resulted in for example an image or a text response for example. As a developer, you can then use this information to further process the response or present it to the user.
+### 3. Conversation and state handling
 
-- **Integrates with the Microsoft Agent Framework**. Microsoft Foundry Agent Service works seamlessly with the Microsoft Agent Framework, which means you can build agents using `FoundryChatClient` and deploy them through the Agent Service for production scenarios.
+Support for carrying relevant interaction state across calls.
 
-**Use Cases**: Microsoft Foundry Agent Service is designed for enterprise applications that require secure, scalable, and flexible AI agent deployment.
+### 4. Workflow composition
 
-## What's the difference between these approaches?
- 
-It does sound like there is overlap, but there are some key differences in terms of their design, capabilities, and target use cases:
- 
-- **Microsoft Agent Framework (MAF)**: Is a production-ready SDK for building AI agents. It provides a streamlined API for creating agents with tool calling, conversation management, and Azure identity integration.
-- **Microsoft Foundry Agent Service**: Is a platform and deployment service in Microsoft Foundry for agents. It offers built-in connectivity to services like Azure OpenAI, Azure AI Search, Bing Search and code execution.
- 
-Still not sure which one to choose?
+Ways to connect multiple steps or multiple agents when the task truly needs them.
 
-### Use Cases
- 
-Let's see if we can help you by going through some common use cases:
- 
-> Q: I'm building production AI agent applications and want to get started quickly
->
+### 5. Observability
 
->A: The Microsoft Agent Framework is a great choice. It provides a simple, Pythonic API via `FoundryChatClient` that lets you define agents with tools and instructions in just a few lines of code.
+Hooks or integrations that help you inspect model calls, tool calls, errors, latency, and execution paths.
 
->Q: I need enterprise-grade deployment with Azure integrations like Search and code execution
->
-> A: Microsoft Foundry Agent Service is the best fit. It's a platform service that provides built-in capabilities for multiple models, Azure AI Search, Bing Search and Azure Functions. It makes it easy to build your agents in the Foundry Portal and deploy them at scale.
- 
-> Q: I'm still confused, just give me one option
->
-> A: Start with the Microsoft Agent Framework to build your agents, and then use Microsoft Foundry Agent Service when you need to deploy and scale them in production. This approach lets you iterate quickly on your agent logic while having a clear path to enterprise deployment.
- 
-Let's summarize the key differences in a table:
+These capabilities are useful, but abstraction has a cost: if you do not understand what the framework is hiding, debugging becomes harder.
 
-| Framework | Focus | Core Concepts | Use Cases |
-| --- | --- | --- | --- |
-| Microsoft Agent Framework | Streamlined agent SDK with tool calling | Agents, Tools, Azure Identity | Building AI agents, tool use, multi-step workflows |
-| Microsoft Foundry Agent Service | Flexible models, enterprise security, Code generation, Tool calling | Modularity, Collaboration, Process Orchestration | Secure, scalable, and flexible AI agent deployment |
+---
 
-## Can I integrate my existing Azure ecosystem tools directly, or do I need standalone solutions?
+## When a Framework Helps — and When It Does Not
 
-The answer is yes, you can integrate your existing Azure ecosystem tools directly with Microsoft Foundry Agent Service especially, as it has been built to work seamlessly with other Azure services. You could for example integrate Bing, Azure AI Search, and Azure Functions. There's also deep integration with Microsoft Foundry.
+A framework is especially useful when your application has several of these needs:
 
-The Microsoft Agent Framework also integrates with Azure services through `FoundryChatClient` and Azure identity, letting you call Azure services directly from your agent tools.
+- multiple tools;
+- multi-step execution;
+- persistent or managed state;
+- reusable agent configurations;
+- workflows or agent coordination;
+- production observability;
+- integrations with managed AI infrastructure.
 
-## Sample Codes
+A framework may be unnecessary when your application is simply:
 
-- Python: [Agent Framework (Microsoft Foundry)](./code_samples/02-python-agent-framework.ipynb)
-- Python: [Agent Framework (Azure OpenAI Responses API)](./code_samples/02-python-agent-framework-azure-openai.ipynb)
-- .NET: [Agent Framework](./code_samples/02-dotnet-agent-framework.md)
+```text
+user input → one model call → text output
+```
 
-## Got More Questions about AI Agent Frameworks?
+The simplest architecture that reliably solves the problem is usually the better starting point.
 
-Join the [Microsoft Foundry Discord](https://discord.com/invite/ATgtXmAS5D) to meet with other learners, attend office hours and get your AI Agents questions answered.
+---
 
-## References
+## Guided Code Walkthrough
 
-- <a href="https://techcommunity.microsoft.com/blog/azure-ai-services-blog/introducing-azure-ai-agent-service/4298357" target="_blank">Azure Agent Service</a>
-- <a href="https://learn.microsoft.com/azure/ai-services/openai/how-to/responses" target="_blank">Microsoft Agent Framework - Azure OpenAI Responses</a>
-- <a href="https://learn.microsoft.com/azure/ai-services/agents/overview" target="_blank">Microsoft Foundry Agent Service</a>
+Use the existing samples to connect the concepts above to real code:
+
+- Python / Microsoft Foundry: [`code_samples/02-python-agent-framework.ipynb`](./code_samples/02-python-agent-framework.ipynb)
+- Python / Azure OpenAI path: [`code_samples/02-python-agent-framework-azure-openai.ipynb`](./code_samples/02-python-agent-framework-azure-openai.ipynb)
+- .NET walkthrough: [`code_samples/02-dotnet-agent-framework.md`](./code_samples/02-dotnet-agent-framework.md)
+- Additional Foundry agent creation guide: [`azure-ai-foundry-agent-creation.md`](./azure-ai-foundry-agent-creation.md)
+
+As you read the sample, label each section as one of these responsibilities:
+
+**model connection → agent configuration → tool/capability → execution → result**
+
+---
+
+## Hands-On: Framework Responsibility Map
+
+Choose an agent idea — preferably the AI Learning Agent — and create a table like this:
+
+| Responsibility | Application-specific or reusable plumbing? | Framework can help? |
+|---|---|---|
+| Understand learner goal | Application-specific | Partly |
+| Connect to model | Reusable plumbing | Yes |
+| Search course files | Application-specific tool | Registration/execution |
+| Track tool calls | Reusable plumbing | Often |
+| Decide what may be remembered | Application policy | No framework can decide this for you |
+
+Then answer:
+
+> Which responsibilities should the framework manage, and which decisions must remain explicit in our application design?
+
+### Deliverable
+
+A responsibility map with at least **five** rows and one sentence explaining why you would or would not use a framework for this project.
+
+---
+
+## Failure Mode: Framework-First Design
+
+A common mistake is starting with:
+
+> “I want to use framework X. What can I build with it?”
+
+That reverses the design process.
+
+A better sequence is:
+
+```text
+User problem
+    ↓
+Required capabilities
+    ↓
+System boundaries
+    ↓
+Choose abstractions/frameworks
+```
+
+If the framework becomes the architecture, teams often add unnecessary agents, memory systems, or orchestration because the library makes them easy to create.
+
+Easy to implement is not the same as necessary.
+
+---
+
+## Trade-Off to Remember
+
+Frameworks trade **control and transparency** for **speed and reusable abstractions**.
+
+More abstraction can mean:
+
+- less code;
+- faster prototyping;
+- more consistent patterns;
+
+but also:
+
+- another dependency to understand;
+- framework-specific behavior;
+- harder debugging if you do not know the underlying model/tool loop.
+
+This is why we learn the concepts before depending on the abstraction.
+
+---
+
+## Checkpoint
+
+Before continuing, explain these in your own words:
+
+1. What repeated engineering problem does an agent framework solve?
+2. What is the difference between a framework and a managed agent platform/service?
+3. Which parts of an agent application remain your responsibility even when a framework handles the plumbing?
+4. When would a direct model API be simpler than an agent framework?
+5. In the sample, what do the model client, agent instructions, tools, and execution call each represent?
+
+If you can answer those questions without naming a specific SDK class, you understand the important part of this lesson.
+
+---
+
+## AI Learning Agent Progress
+
+**Before:** We knew the components of an agent system.
+
+**Now:** We know how a framework can organize those components without replacing our architectural decisions.
+
+Our agent has not gained a new end-user capability yet. Instead, **we have gained a reusable engineering structure for adding capabilities safely and consistently.**
+
+That distinction matters.
+
+---
+
+## One-Line Takeaway
+
+> **An agent framework is reusable plumbing for agent systems — useful after you understand the problem and architecture, not before.**
+
+---
+
+## Got Questions?
+
+Join the [Microsoft Foundry Discord](https://discord.com/invite/ATgtXmAS5D) to connect with other learners and builders.
 
 ## Previous Lesson
 
-[Introduction to AI Agents and Agent Use Cases](../01-intro-to-ai-agents/README.md)
+[Introduction to AI Agents](../01-intro-to-ai-agents/README.md)
 
 ## Next Lesson
 
-[Understanding Agentic Design Patterns](../03-agentic-design-patterns/README.md)
+[AI Agentic Design Principles](../03-agentic-design-patterns/README.md)
